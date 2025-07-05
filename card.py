@@ -61,40 +61,12 @@ class Player:
         return f"Player {self.name} - Hand: {len(self.hand)} cards, Deck: {len(self.deck.cards)} cards, Score: {self.score}"
 
 # -----------------------
-# Test Run
-# -----------------------
-
-# Create a deck
-# deck = Deck([
-#     Card('Geralt of Rivia', 15, 'melee'),
-#     Card('Yennefer', 7, 'ranged'),
-#     Card('Triss Merigold', 7, 'ranged'),
-#     Card('Clear Weather', 0, 'special', 'clear_weather')
-# ])
-# deck.shuffle()
-
-# # Create a player with the deck
-# player = Player("Geralt", deck)
-
-# # Draw 2 cards into hand
-# player.draw_hand(2)
-# print(player)
-
-# # Play a card from hand (index 0)
-# played_card = player.play_card(0)
-# print(f"{player.name} played: {played_card}")
-
-# # Show player after playing a card
-# print(player)
-
-# -----------------------
 # Board Class
 # -----------------------
-
 class Board:
     def __init__(self):
         self.rows = {
-            "player" : {"melee": [], "ranged": [], "siege": []},
+            "player": {"melee": [], "ranged": [], "siege": []},
             "opponent": {"melee": [], "ranged": [], "siege": []}
         }
 
@@ -103,27 +75,51 @@ class Board:
             self.rows[player_name][card.row].append(card)
         else:
             print(f"Invalid row: {card.row} for player {player_name}")
-        
+
     def get_score(self, player_name):
         total = 0
         for row in self.rows[player_name].values():
             total += sum(card.strength for card in row)
         return total
-        
+
     def __str__(self):
         result = ""
         for side in self.rows:
             result += f"{side.capitalize()}:\n"
             for row, cards in self.rows[side].items():
-                row_str = ", ".join(str(card) for card in cards)
-                result += f" {row}: {row_str}\n"
+                row_str = ", ".join(str(card) for card in cards) or "Empty"
+                result += f"  {row}: {row_str}\n"
         return result
-    
-board = Board()
-board.add_card("player", Card("Geralt of Rivia", 15, "melee"))
-board.add_card("player", Card("Triss Merigold", 7, "ranged"))
-board.add_card("opponent", Card("Yennefer", 7, "ranged"))
 
-print(board)
-print("Player score:", board.get_score("player"))
-print("Opponent score:", board.get_score("opponent"))
+# -----------------------
+# Play Turn Function (OUTSIDE Board)
+# -----------------------
+def play_turn(player, board, is_player=True):
+    if is_player:
+        print(f"\n{player.name}'s Hand:")
+        for idx, card in enumerate(player.hand):
+            print(f"{idx}: {card}")
+        choice = input("Choose a card to play (index) or 'p' to pass: ")
+        if choice == 'p':
+            print(f"{player.name} passed.")
+            return False  # player passed
+        try:
+            card_index = int(choice)
+            card = player.play_card(card_index)
+            if card:
+                board.add_card("player", card)
+                print(f"{player.name} played: {card}")
+        except (ValueError, IndexError):
+            print("Invalid input. Try again.")
+            return play_turn(player, board, is_player)
+    else:
+        # Opponent AI (random card play for now)
+        if player.hand:
+            card_index = random.randint(0, len(player.hand) - 1)
+            card = player.play_card(card_index)
+            board.add_card("opponent", card)
+            print(f"{player.name} played: {card}")
+        else:
+            print(f"{player.name} passed.")
+            return False  # opponent passed
+    return True  # played a card
